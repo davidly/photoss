@@ -1,0 +1,5 @@
+#define ID_PATHFIELD       200
+#define ID_DELAY_SECONDS   201
+#define ID_SHOWCAPTUREDATE 202
+#define ID_BLANK_MINUTES   203
+

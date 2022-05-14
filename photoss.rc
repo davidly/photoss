@@ -1,0 +1,25 @@
+#include <windows.h>
+#include <scrnsave.h>
+#include <photoss.h>
+
+ID_APP ICON "photoss.ico"
+
+DLG_SCRNSAVECONFIGURE DIALOGEX 0, 0, 170, 128
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Screen Saver Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    LTEXT           "Photo path:", -1,  8, 10,  60,  8, SS_NOPREFIX
+    EDITTEXT        ID_PATHFIELD,      10, 20, 150, 12, WS_TABSTOP
+
+    LTEXT           "Delay in seconds:", -1,   8, 42, 60,   8, SS_NOPREFIX
+    COMBOBOX        ID_DELAY_SECONDS,         70, 40, 40, 102, WS_TABSTOP | CBS_HASSTRINGS | CBS_DROPDOWN
+
+    AUTOCHECKBOX    "Show capture date", ID_SHOWCAPTUREDATE, 8, 62, 100,  8, WS_TABSTOP
+
+    LTEXT           "Blank in minutes:", -1,   8, 82, 60,   8, SS_NOPREFIX
+    COMBOBOX        ID_BLANK_MINUTES,         70, 80, 40, 102, WS_TABSTOP | CBS_HASSTRINGS | CBS_DROPDOWN
+
+    PUSHBUTTON      "Cancel", IDCANCEL,  10, 108, 50, 14, WS_GROUP | WS_TABSTOP
+    DEFPUSHBUTTON   "OK", IDOK,         113, 108, 50, 14, WS_GROUP | WS_TABSTOP
+END
