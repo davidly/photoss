@@ -693,10 +693,10 @@ extern "C" LRESULT WINAPI ScreenSaverProc( HWND hWnd, UINT message, WPARAM wPara
                     WordToWC( awcCurrentTime,     lt.wHour );
                     WordToWC( awcCurrentTime + 3, lt.wMinute );
 
-                    int width = rect.right - rect.left - rectDateTime.right;
-                    int height = rect.bottom - rect.top - rectDateTime.top;
-                    int xoffset = rect.right - rectDateTime.right - ( rand() % width );
-                    int yoffset = rect.bottom - rectDateTime.top - ( rand() % height );
+                    int effectiveWidth = rect.right - rect.left - rectDateTime.right;
+                    int effectiveHeight = rect.bottom - rect.top - rectDateTime.bottom;
+                    int xoffset = rect.right - ( rand() % effectiveWidth );
+                    int yoffset = rect.top + ( rand() % effectiveHeight );
 
                     ExtTextOut( hdc, xoffset, yoffset, 0, &rectDateTime, awcCurrentTime, currentTimeLen, NULL );
 
