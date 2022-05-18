@@ -69,7 +69,6 @@ int photoDelay = g_validDelays[ 1 ];
 int blankDelay = g_validBlanks[ 1 ];
 bool g_showCaptureDate = true;                          // also controls whether current date is shown
 bool g_blankMode = false;                               // show a blank screen (plus perhaps current date)
-IWICImagingFactory *g_pIWICFactory = NULL;
 RECT g_AppRect;
 CImageData g_ImageData;
 CWic2Gdi * g_pWic2Gdi = 0;
@@ -394,20 +393,12 @@ extern "C" LRESULT WINAPI ScreenSaverProc( HWND hWnd, UINT message, WPARAM wPara
             if ( FAILED( hr ) )
                 return 0;
         
-            hr = CoCreateInstance( CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS( &g_pIWICFactory ) );
-            if ( FAILED( hr ) )
-            {
-                tracer.Trace( "can't initialize WIC, error %#x\n", hr );
-                return 0;
-            }
-
             g_pWic2Gdi = new CWic2Gdi();
             if ( !g_pWic2Gdi->Ok() )
                 return 0;
 
             GdiplusStartupInput si;
             Status gdiStatus = GdiplusStartup( &gdiplusToken, &si, NULL );
-        
             if ( Status::Ok != gdiStatus )
                 return 0;
 
@@ -451,6 +442,7 @@ extern "C" LRESULT WINAPI ScreenSaverProc( HWND hWnd, UINT message, WPARAM wPara
 
             CoUninitialize();
 
+            DeleteObject( fontText );
             DeleteObject( brushBlack );
             return 0;
         }
