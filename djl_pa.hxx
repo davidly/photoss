@@ -22,6 +22,7 @@ class CPathArray
             FILETIME ftCreation;
             FILETIME ftLastWrite;
             FILETIME ftCapture;
+            ULONG ulAttribute;     // can be used to sort on anything, e.g. primary color
         };
 
     private:
@@ -41,6 +42,14 @@ class CPathArray
 
             return ( ulA.QuadPart > ulB.QuadPart ) ? -1 : ( ulA.QuadPart < ulB.QuadPart ) ? 1 : 0;
         } //CompareFT
+
+        static int PIAttributeCompare( const void * a, const void * b )
+        {
+            PathItem *pa = (PathItem *) a;
+            PathItem *pb = (PathItem *) b;
+
+            return ( pa->ulAttribute > pb->ulAttribute ) ? 1 : ( pa->ulAttribute == pb->ulAttribute ) ? 0 : -1;
+        } //PIAttributeCompare
 
         static int PILastWriteCompare( const void * a, const void * b )
         {
@@ -140,6 +149,11 @@ class CPathArray
             }
         } //Randomize
 
+        void SortOnAttribute()
+        {
+            qsort( elements.data(), elements.size(), sizeof PathItem, PIAttributeCompare );
+        } //SortOnAttribute
+
         void SortOnLastWrite()
         {
             qsort( elements.data(), elements.size(), sizeof PathItem, PILastWriteCompare );
@@ -233,6 +247,19 @@ class CPathArray
             size_t len = 1 + wcslen( pwc );
             pi.pwcPath = new WCHAR[ len ];
             wcscpy_s( pi.pwcPath, len, pwc );
+
+            lock_guard<mutex> lock( mtx );
+
+            elements.push_back( pi );
+        } //Add
+
+        void Add( char * pc )
+        {
+            PathItem pi = {};
+            size_t len = 1 + strlen( pc );
+            pi.pwcPath = new WCHAR[ len ];
+            size_t outputLen = 0;
+            mbstowcs_s( &outputLen, pi.pwcPath, len, pc, len );
 
             lock_guard<mutex> lock( mtx );
 

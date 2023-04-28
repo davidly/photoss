@@ -2,6 +2,7 @@
 
 #include <winbase.h>
 #include <chrono>
+#include <winnt.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -31,7 +32,12 @@ class CTimed
 
                 high_resolution_clock::time_point tEnd = high_resolution_clock::now();
                 duration = duration_cast<std::chrono::nanoseconds>( tEnd - tStart ).count();
+
+#if defined( _M_IX86 ) || defined( _M_X64 )
                 _InlineInterlockedAdd64( &sum, duration );
+#else
+                _InterlockedAdd64( &sum, duration );
+#endif
             }
 
             return duration;
