@@ -426,7 +426,7 @@ class CWic2Gdi
 
             #if false
 
-                // Don't do the rotate here. The performance an be terrible. From msft documentation:
+                // Don't do the rotate here. The performance can be terrible. From msft documentation:
                 // IWICBitmapFipRotator requests data on a per-pixel basis, while WIC codecs provide data on a per-scanline basis.
                 // This causes the fliprotator object to exhibit n behavior if there is no buffering. This occurs because each pixel in the 
                 // transformed image requires an entire scanline to be decoded in the file. It is recommended that you buffer the image using

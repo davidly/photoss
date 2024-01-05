@@ -174,11 +174,11 @@ class CStream
         __int64 Length() { return length; }
         bool AtEOF() { return ( offset >= length ); }
 
-        void GetBytes( __int64 offset, void * pData, int byteCount )
+        void GetBytes( __int64 seek_offset, void * pData, int byteCount )
         {
             memset( pData, 0, byteCount );
 
-            if ( Seek( offset ) )
+            if ( Seek( seek_offset ) )
                 Read( pData, byteCount );
         } //GetBytes
 

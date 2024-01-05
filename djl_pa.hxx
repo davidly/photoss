@@ -32,15 +32,13 @@ class CPathArray
 
         static int CompareFT( FILETIME & ftA, FILETIME & ftB )
         {
-            // note: invert sort so most recent files come first
-
             ULARGE_INTEGER ulA, ulB;
             ulA.LowPart = ftA.dwLowDateTime;
             ulA.HighPart = ftA.dwHighDateTime;
             ulB.LowPart = ftB.dwLowDateTime;
             ulB.HighPart = ftB.dwHighDateTime;
 
-            return ( ulA.QuadPart > ulB.QuadPart ) ? -1 : ( ulA.QuadPart < ulB.QuadPart ) ? 1 : 0;
+            return ( ulA.QuadPart > ulB.QuadPart ) ? 1 : ( ulA.QuadPart < ulB.QuadPart ) ? -1 : 0;
         } //CompareFT
 
         static int PIAttributeCompare( const void * a, const void * b )
@@ -48,7 +46,7 @@ class CPathArray
             PathItem *pa = (PathItem *) a;
             PathItem *pb = (PathItem *) b;
 
-            return ( pa->ulAttribute > pb->ulAttribute ) ? 1 : ( pa->ulAttribute == pb->ulAttribute ) ? 0 : -1;
+            return ( ( pa->ulAttribute > pb->ulAttribute ) ? 1 : ( pa->ulAttribute == pb->ulAttribute ) ? 0 : -1 );
         } //PIAttributeCompare
 
         static int PILastWriteCompare( const void * a, const void * b )
@@ -80,8 +78,33 @@ class CPathArray
             PathItem *pa = (PathItem *) a;
             PathItem *pb = (PathItem *) b;
 
-            return ( wcscmp( pa->pwcPath, pb->pwcPath ) );
+            return wcscmp( pa->pwcPath, pb->pwcPath );
         } //PIPathCompare
+
+        static int PIAttributeCompareDescending( const void * a, const void * b )
+        {
+            return PIAttributeCompare( b, a );
+        } //PIAttributeCompareDescending
+
+        static int PILastWriteCompareDescending( const void * a, const void * b )
+        {
+            return PILastWriteCompare( b, a );
+        } //PILastWriteCompareDescending
+        
+        static int PICreationCompareDescending( const void * a, const void * b )
+        {
+            return PICreationCompare( b, a );
+        } //PICreationCompareDescending
+        
+        static int PICaptureCompareDescending( const void * a, const void * b )
+        {
+            return PICaptureCompare( b, a );
+        } //PICaptureCompareDescending
+        
+        static int PIPathCompareDescending( const void * a, const void * b )
+        {
+            return PIPathCompare( b, a );
+        } //PIPathCompareDescendingDescending
 
         void PrintList()
         {
@@ -92,6 +115,7 @@ class CPathArray
 
                 SYSTEMTIME st;
                 ULARGE_INTEGER uli;
+
                 uli.LowPart = e.ftCreation.dwLowDateTime;
                 uli.HighPart = e.ftCreation.dwHighDateTime;
                 FileTimeToSystemTime( &e.ftCreation, &st );
@@ -101,6 +125,11 @@ class CPathArray
                 uli.HighPart = e.ftLastWrite.dwHighDateTime;
                 FileTimeToSystemTime( &e.ftLastWrite, &st );
                 tracer.Trace( "    Last Write: %2d-%02d-%04d %2d:%02d:%02d == %#llx\n", st.wMonth, st.wDay, st.wYear, st.wHour, st.wMinute, st.wSecond, uli.QuadPart );
+
+                uli.LowPart = e.ftCapture.dwLowDateTime;
+                uli.HighPart = e.ftCapture.dwHighDateTime;
+                FileTimeToSystemTime( &e.ftCapture, &st );
+                tracer.Trace( "    Capture:    %2d-%02d-%04d %2d:%02d:%02d == %#llx\n", st.wMonth, st.wDay, st.wYear, st.wHour, st.wMinute, st.wSecond, uli.QuadPart );
             }
         } //PrintList
         
@@ -149,27 +178,27 @@ class CPathArray
             }
         } //Randomize
 
-        void SortOnAttribute()
+        void SortOnAttribute( bool ascending = true )
         {
-            qsort( elements.data(), elements.size(), sizeof PathItem, PIAttributeCompare );
+            qsort( elements.data(), elements.size(), sizeof PathItem, ascending ? PIAttributeCompare : PIAttributeCompareDescending );
         } //SortOnAttribute
 
-        void SortOnLastWrite()
+        void SortOnLastWrite( bool ascending = true )
         {
-            qsort( elements.data(), elements.size(), sizeof PathItem, PILastWriteCompare );
+            qsort( elements.data(), elements.size(), sizeof PathItem, ascending ? PILastWriteCompare : PILastWriteCompareDescending );
         } //SortOnLastWrite
 
-        void SortOnCreation()
+        void SortOnCreation( bool ascending = true )
         {
-            qsort( elements.data(), elements.size(), sizeof PathItem, PICreationCompare );
+            qsort( elements.data(), elements.size(), sizeof PathItem, ascending ? PICreationCompare : PICreationCompareDescending );
         } //SortOnCreation
 
-        void SortOnPath()
+        void SortOnPath( bool ascending = true )
         {
-            qsort( elements.data(), elements.size(), sizeof PathItem, PIPathCompare );
+            qsort( elements.data(), elements.size(), sizeof PathItem, ascending ? PIPathCompare : PIPathCompareDescending );
         } //SortOnPath
 
-        void SortOnCapture()
+        void SortOnCapture( bool ascending = true )
         {
             if ( !captureTimesLoaded )
             {
@@ -191,12 +220,12 @@ class CPathArray
                         // 2005:02:17 21:21:31
 
                         SYSTEMTIME st = {0};
-                        st.wYear = atoi( dateTime );
-                        st.wMonth = atoi( dateTime + 5 );
-                        st.wDay = atoi( dateTime + 8 );
-                        st.wHour = atoi( dateTime + 11 );
-                        st.wMinute = atoi( dateTime + 14 );
-                        st.wSecond = atoi( dateTime + 17 );
+                        st.wYear = (WORD) atoi( dateTime );
+                        st.wMonth = (WORD) atoi( dateTime + 5 );
+                        st.wDay = (WORD) atoi( dateTime + 8 );
+                        st.wHour = (WORD) atoi( dateTime + 11 );
+                        st.wMinute = (WORD) atoi( dateTime + 14 );
+                        st.wSecond = (WORD) atoi( dateTime + 17 );
                         tracer.Trace( "parsed time '%s': %d, %d, %d, %d, %d, %d\n", dateTime, st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond );
 
                         SystemTimeToFileTime( &st, &elements[i].ftCapture );
@@ -211,7 +240,9 @@ class CPathArray
                 captureTimesLoaded = true;
             }
 
-            qsort( elements.data(), elements.size(), sizeof PathItem, PICaptureCompare );
+            qsort( elements.data(), elements.size(), sizeof PathItem, ascending ? PICaptureCompare : PICaptureCompareDescending );
+            tracer.Trace( "sorted on capture time, ascending %d\n", ascending );
+            PrintList();
         } //SortOnCapture
 
         void InvertSort()

@@ -29,6 +29,8 @@
 #include "djl_strm.hxx"
 #include "djl_crop.hxx"
 
+#pragma warning( disable: 4189 ) // many places parse data that's unused in order to get to later data
+
 using namespace std;
 
 /*
@@ -177,7 +179,7 @@ private:
     char g_acSerialNumber[ 100 ];
     bool g_holdsAdobeEditsInXMP;
     __int64 g_RatingInXMP_Offset = 0; // offset of 1 ascii character in the range of 0-5.
-    int g_RatingInXMP = 0;
+    char g_RatingInXMP = 0;
     
     WORD FixEndianWORD( WORD w, bool littleEndian )
     {
@@ -539,7 +541,6 @@ private:
     
     void EnumerateOlympusCameraSettingsIFD( int depth, __int64 IFDOffset, __int64 headerBase, bool littleEndian )
     {
-        __int64 originalIFDOffset = IFDOffset;
         bool previewIsValid = false;
         vector<IFDHeader> aHeaders( MaxIFDHeaders );
     
@@ -587,7 +588,7 @@ private:
     
         // In Fujifilm files, the base is not relative to the prior base; it's relative to the IFD start.
     
-        DWORD tagHeaderBase = IFDOffset - 12;
+        DWORD tagHeaderBase = (DWORD) ( IFDOffset - 12 );
     
         while ( 0 != IFDOffset ) 
         {
@@ -607,7 +608,7 @@ private:
     
                 if ( 16 == head.id )
                 {
-                    ULONG stringOffset = ( head.count <= 4 ) ? ( IFDOffset - 4 ) : head.offset;
+                    ULONG stringOffset = ( head.count <= 4 ) ? ( (ULONG) IFDOffset - 4 ) : head.offset;
                     GetString( stringOffset + tagHeaderBase + headerBase, g_acSerialNumber, _countof( g_acSerialNumber ), head.count );
                     //tracer.Trace( "fujifilm makernote (alternate) Serial #: %s\n", g_acSerialNumber );
                 }
@@ -617,8 +618,8 @@ private:
                     // If rating is set in-camera (on a X-S10), the xmp in the embedded JPG has the rating set appropriately,
                     // but this field does not exist.
 
-                    size_t ratingOffset = head.offset + tagHeaderBase + headerBase;
-                    DWORD ratingTest = GetDWORD( ratingOffset, false );
+                    //size_t ratingOffset = head.offset + tagHeaderBase + headerBase;
+                    //DWORD ratingTest = GetDWORD( ratingOffset, false );
                     //tracer.Trace( "fujifilm rating value %d and offset: %zd, rating at that offset %d\n", head.offset, ratingOffset, ratingTest );
                 }
             }
@@ -668,19 +669,19 @@ private:
                 {
                     // treat this as if it's a string even though it's a type 7 
 
-                    ULONG stringOffset = ( head.count <= 4 ) ? ( IFDOffset - 4 ) : head.offset;
+                    ULONG stringOffset = ( head.count <= 4 ) ? ( (ULONG) IFDOffset - 4 ) : head.offset;
                     GetString( stringOffset + headerBase, g_acSerialNumber, _countof( g_acSerialNumber ), head.count );
                     DetectGarbage( g_acSerialNumber );
                 }
                 else if ( 81 == head.id && 2 == head.type )
                 {
-                    ULONG stringOffset = ( head.count <= 4 ) ? ( IFDOffset - 4 ) : head.offset;
+                    ULONG stringOffset = ( head.count <= 4 ) ? ( (ULONG) IFDOffset - 4 ) : head.offset;
                     GetString( stringOffset + headerBase, g_acLensModel, _countof( g_acLensModel ), head.count );
                     DetectGarbage( g_acLensModel );
                 }
                 else if ( 82 == head.id && 2 == head.type )
                 {
-                    ULONG stringOffset = ( head.count <= 4 ) ? ( IFDOffset - 4 ) : head.offset;
+                    ULONG stringOffset = ( head.count <= 4 ) ? ( (ULONG) IFDOffset - 4 ) : head.offset;
                     GetString( stringOffset + headerBase, g_acLensSerialNumber, _countof( g_acLensSerialNumber ), head.count );
                     DetectGarbage( g_acLensSerialNumber );
                 }
@@ -875,7 +876,7 @@ private:
                 {
                     if ( 0 == g_acSerialNumber )
                     {
-                        sprintf_s( g_acSerialNumber, _countof( g_acSerialNumber ), "%d", head.offset );
+                        sprintf_s( g_acSerialNumber, _countof( g_acSerialNumber ), "%u", head.offset );
                         //tracer.Trace( "canon makernote serial number: %s\n", g_acSerialNumber );
                     }
                 }
@@ -889,6 +890,7 @@ private:
                     SensorData sd;
                     GetBytes( head.offset + headerBase, &sd, sizeof sd );
 
+/*
                     short sensorWidth = FixEndianWORD( sd.width, littleEndian );
                     short sensorHeight = FixEndianWORD( sd.height, littleEndian );
     
@@ -896,12 +898,13 @@ private:
                     short topBorder = FixEndianWORD( sd.tborder, littleEndian );
                     short rightBorder = FixEndianWORD( sd.rborder, littleEndian );
                     short bottomBorder = FixEndianWORD( sd.bborder, littleEndian );
+*/
                 }
                 else if ( 553 == head.id && isRicoh )
                 {
                     if ( 2 == head.type )
                     {
-                        ULONG stringOffset = ( head.count <= 4 ) ? ( IFDOffset - 4 ) : head.offset;
+                        ULONG stringOffset = ( head.count <= 4 ) ? ( (ULONG) IFDOffset - 4 ) : head.offset;
     
                         // Ricoh assumes the base is originalIFDOffset
 
@@ -932,7 +935,6 @@ private:
         DWORD YResolutionNum = 0;
         DWORD YResolutionDen = 0;
         DWORD sensorSizeUnit = 0; // 2==inch, 3==centimeter
-        double focalLength = 0.0;
         DWORD pixelWidth = 0;
         DWORD pixelHeight = 0;
         vector<IFDHeader> aHeaders( MaxIFDHeaders );
@@ -1410,7 +1412,6 @@ private:
     
         __int64 offset = 0;
         DWORD box = 0;
-        int indent = depth * 2;
     
         do
         {
@@ -1618,7 +1619,7 @@ private:
                             extentLength = ( high << 32 ) | low;
                         }
     
-                        if ( itemID == g_Heif_Exif_ItemID )
+                        if ( itemID == (int) g_Heif_Exif_ItemID )
                         {
                             g_Heif_Exif_Offset = extentOffset;
                             g_Heif_Exif_Length = extentLength;
@@ -1703,7 +1704,7 @@ private:
                     ULONGLONG xmpLen = boxLen - ( offset - boxOffset );
                     unique_ptr<char> bytes( new char[ xmpLen + 1 ] );
                     bytes.get()[ xmpLen ] = 0; // ensure it'll be null-terminated
-                    hs.GetBytes( offset, bytes.get(), xmpLen );
+                    hs.GetBytes( offset, bytes.get(), (ULONG) xmpLen );
                     EnumerateXMPData( bytes.get(), offset );
                 }
             }
@@ -1908,9 +1909,9 @@ private:
                         EnumerateGenericIFD( depth + 1, head.offset, headerBase, littleEndian );
                     else
                     {
-                        for ( size_t i = 0; i < head.count; i++ )
+                        for ( size_t item = 0; item < head.count; item++ )
                         {
-                            DWORD oIFD = GetDWORD( ( i * 4 ) + head.offset + headerBase, littleEndian );
+                            DWORD oIFD = GetDWORD( ( item * 4 ) + head.offset + headerBase, littleEndian );
                             EnumerateGenericIFD( depth + 1, oIFD, headerBase, littleEndian );
                         }
                     }
@@ -2102,7 +2103,7 @@ private:
                     unique_ptr<char> bytes( new char[ data_length + 1 ] );
                     GetBytes( (__int64) offset + 4, bytes.get(), data_length );
                     bytes.get()[ data_length ] = 0;
-                    int headerlen = strlen( bytes.get() );
+                    size_t headerlen = strlen( bytes.get() );
     
                     EnumerateXMPData( bytes.get() + headerlen + 1, ( offset + 4 + headerlen + 1 ) );
                 }
@@ -2355,7 +2356,7 @@ private:
                 // byte array:                     the image
                 // 
 
-                int o = frameOffset + frameHeaderSize;
+                int o = (int) ( frameOffset + frameHeaderSize );
                 int oFrameData = o;
 
                 // Every MP3 in my collection had far less than 100 bytes of data prior to the image itself.
@@ -2484,7 +2485,7 @@ private:
 
                 o = oFrameData + datao;
 
-                if ( o < ( oFrameData + frameHeader.size ) )
+                if ( o < (int) ( oFrameData + frameHeader.size ) )
                 {
                     int imageSize = frameHeader.size - ( o - oFrameData );
                     //tracer.Trace( "  image size:        %d and offset %d\n", imageSize, o );
@@ -2852,8 +2853,8 @@ private:
                     header = maybe;
                     littleEndian = ( 0x4949 == ( header & 0xffff ) );
     
-                    DWORD IFDOffset = GetDWORD( startingOffset, littleEndian );
-                    EnumerateIFD0( 0, IFDOffset, headerBase, littleEndian, pwcExt );
+                    DWORD IFDStartingOffset = GetDWORD( startingOffset, littleEndian );
+                    EnumerateIFD0( 0, IFDStartingOffset, headerBase, littleEndian, pwcExt );
                 }
             }
         }
@@ -3086,9 +3087,6 @@ private:
     bool SameFocalLength( double a, double b )
     {
         double diff = fabs( a - b );
-    
-    //    tracer.Trace( "samefl, a %lf, b %lf\n", a, b );
-    
         return ( ( diff / a * 100.0 ) < 5.0 );
     } //SameFocualLength
     
@@ -3117,6 +3115,45 @@ private:
         return DBL_MAX;
     } //GetComputedCropFactor
 
+    const char * FindAspectRatio( int w, int h )
+    {
+        // find the closest matching whole integer aspect ratio 1x20 to 20x1
+
+        static char acAspect[ 20 ];
+        acAspect[ 0 ] = 0;
+
+        if ( 0 == w || 0 == h )
+            return acAspect;
+
+        // this algorithm isn't efficient
+          
+        double a = (double) w / (double) h;
+        int bestw = -1;
+        int besth = -1;
+        double bestdiff = 1000000.0;
+        const int maxdim = 20;
+
+        for ( int i = 1; i <= maxdim; i++ )
+        {
+            double di = (double) i;
+            for ( int j = 1; j <= maxdim; j++ )
+            {
+                double diff = fabs( ( di / (double) j ) - a );
+                if ( diff < bestdiff )
+                {
+                    bestdiff = diff;
+                    bestw = i;
+                    besth = j;
+                }
+            }
+        }
+
+        if ( bestdiff < 0.01 )
+            sprintf_s( acAspect, _countof( acAspect ), " (%dx%d)", bestw, besth );
+
+        return acAspect;
+    } //FindAspectRatio
+    
 public:
 
     double FindFocalLength( const WCHAR * pwcPath, double &focalLength, int & flIn35mmFilm, double &flGuess, double &flComputed, char * pcModel, int modelLen )
@@ -3171,6 +3208,30 @@ public:
         return flBestGuess;
     } //FindFocalLength
 
+    bool FindFNumber( const WCHAR * pwcPath, double * pFNumber )
+    {
+        UpdateCache( pwcPath );
+
+        bool found = false;
+    
+        if ( -1 != g_FNumberNum && -1 != g_FNumberDen && 0 != g_FNumberDen )
+        {
+            *pFNumber = (double) g_FNumberNum / (double) g_FNumberDen;
+            found = true;
+        }
+        else if ( -1 != g_ApertureNum && -1 != g_ApertureDen && 0 != g_ApertureDen )
+        {
+            // Compute f number from aperture. The Leica M11 Monochrom's EXIF data has Aperture and not FNumber
+            // That camera guesses the Aperture based on the light meter and exposure.
+
+            double aperture = (double) g_ApertureNum / (double) g_ApertureDen;
+            *pFNumber = pow( sqrt( 2.0 ), aperture );
+            found = true;
+        }
+
+        return found;
+    } //FindFNumber
+
     bool FindDateTime( const WCHAR * pwcPath, char * pcDateTime, int buflen )
     {
         UpdateCache( pwcPath );
@@ -3199,7 +3260,7 @@ public:
     
         return ( 0 != *pcDateTime );
     } //FindDateTime
-    
+
     bool GetInterestingMetadata( const WCHAR * pwcPath, char * pc, int buflen, int previewWidth, int previewHeight )
     {
         UpdateCache( pwcPath );
@@ -3227,10 +3288,12 @@ public:
             if ( SubstantiallyDifferentResolution( w, previewWidth ) )
                 current += sprintf_s( current, past - current, "%d x %d (%d x %d)\n", w, h, previewWidth, previewHeight );
             else
-                current += sprintf_s( current, past - current, "%d x %d\n", w, h );
+                current += sprintf_s( current, past - current, "%d x %d", w, h );
+
+            current += sprintf_s( current, past - current, "%s\n", FindAspectRatio( w, h ) );
         }
         else
-            current += sprintf_s( current, past - current, "%d x %d\n", previewWidth, previewHeight ); // BMP, PNG, and any other non-supported formats
+            current += sprintf_s( current, past - current, "%d x %d%s\n", previewWidth, previewHeight, FindAspectRatio( previewWidth, previewHeight ) ); // BMP, PNG, and any other non-supported formats
     
         if ( -1 != g_ISO )
             current += sprintf_s( current, past - current, "ISO %d\n", g_ISO );
@@ -3255,7 +3318,7 @@ public:
         }
         else if ( -1 != g_ApertureNum && -1 != g_ApertureDen && 0 != g_ApertureDen )
         {
-            // compute f number from aperture
+            // compute f number from aperture. The Leica M11 Monochrom's EXIF data has Aperture and not FNumber
 
             double aperture = (double) g_ApertureNum / (double) g_ApertureDen;
             double fnumber = pow( sqrt( 2.0 ), aperture );
@@ -3328,7 +3391,7 @@ public:
 
         if ( 0 != g_RatingInXMP_Offset )
             current += sprintf_s( current, past - current, "rating: %d\n", g_RatingInXMP );
-    
+
         // remove the trailing newline
     
         if ( ( 0 != *pc ) && ( '\n' == * ( current - 1 ) ) )
@@ -3442,7 +3505,7 @@ public:
         return g_holdsAdobeEditsInXMP;
     } //HoldsAdobeEditsInXMP
 
-    bool GetRating( const WCHAR * pwcPath, int & rating )
+    bool GetRating( const WCHAR * pwcPath, char & rating )
     {
         UpdateCache( pwcPath );
 
@@ -3468,7 +3531,7 @@ public:
             return false;
         }
 
-        int newRating = 0;
+        char newRating = 0;
 
         if ( ( g_RatingInXMP >= 0 ) && ( g_RatingInXMP <= 4 ) )
             newRating = 1 + g_RatingInXMP;
@@ -3509,7 +3572,7 @@ public:
         return ok;
     } //ToggleRating
 
-    bool SetRating( const WCHAR * pwcPath, int rating )
+    bool SetRating( const WCHAR * pwcPath, char rating )
     {
         // If the file can hold a rating, set it to the value as a character
 
@@ -3601,7 +3664,7 @@ public:
         }
 
         // 1 --> 6 --> 3 --> 8 --> 1 ...
-        WORD o = g_Orientation_Value;
+        WORD o = (WORD) g_Orientation_Value;
 
         if ( rotateRight )
         {
